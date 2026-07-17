@@ -13,6 +13,49 @@ cd /d "%PROJECT_ROOT%"
 
 echo 🚀 Starting ERBeauti locally...
 
+:: Check Python
+python --version >nul 2>&1
+if %errorlevel% neq 0 (
+  echo ❌ Python is not installed. Please install Python 3.10+ from https://www.python.org/downloads/
+  exit /b 1
+)
+
+:: Check Python version
+for /f "tokens=2 delims= " %%v in ('python --version 2^>^&1') do set PY_VER=%%v
+for /f "tokens=1 delims=." %%m in ("%PY_VER%") do set PY_MAJOR=%%m
+for /f "tokens=2 delims=." %%m in ("%PY_VER%") do set PY_MINOR=%%m
+if %PY_MAJOR% lss 3 (
+  echo ❌ Python version %PY_VER% is too old. Python 3.10+ is required.
+  exit /b 1
+)
+if %PY_MAJOR% equ 3 if %PY_MINOR% lss 10 (
+  echo ❌ Python version %PY_VER% is too old. Python 3.10+ is required.
+  exit /b 1
+)
+
+:: Check Node.js
+node --version >nul 2>&1
+if %errorlevel% neq 0 (
+  echo ❌ Node.js is not installed. Please install Node.js 20+ from https://nodejs.org/
+  exit /b 1
+)
+
+:: Check Node.js version
+for /f "tokens=1 delims=v" %%v in ('node --version') do set NODE_VER=%%v
+for /f "tokens=1 delims=." %%m in ("%NODE_VER%") do set NODE_MAJOR=%%m
+if %NODE_MAJOR% lss 20 (
+  echo ❌ Node.js version %NODE_VER% is too old. Node.js 20+ is required.
+  echo    Please upgrade Node.js from https://nodejs.org/
+  exit /b 1
+)
+
+:: Check npm
+npm --version >nul 2>&1
+if %errorlevel% neq 0 (
+  echo ❌ npm is not available. Please install Node.js 20+ from https://nodejs.org/
+  exit /b 1
+)
+
 if not exist "python_part\.venv" (
   echo ❌ Python virtual environment not found at python_part\.venv
   echo    Please run: cd python_part ^&^& python -m venv .venv ^&^& .venv\Scripts\activate ^&^& pip install -e .

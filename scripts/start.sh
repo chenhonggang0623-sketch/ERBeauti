@@ -12,10 +12,54 @@ cd "${PROJECT_ROOT}"
 
 echo "🚀 Starting ERBeauti locally..."
 
+# Check required tools
+PYTHON_CMD=""
+for cmd in python3 python; do
+  if command -v "$cmd" &>/dev/null; then
+    PYTHON_CMD="$cmd"
+    break
+  fi
+done
+if [[ -z "$PYTHON_CMD" ]]; then
+  echo "❌ Python is not installed. Please install Python 3.10+ from https://www.python.org/downloads/"
+  exit 1
+fi
+
+if ! command -v node &>/dev/null; then
+  echo "❌ Node.js is not installed. Please install Node.js 20+ from https://nodejs.org/"
+  exit 1
+fi
+
+if ! command -v npm &>/dev/null; then
+  echo "❌ npm is not installed. Please install Node.js 20+ from https://nodejs.org/"
+  exit 1
+fi
+
+if ! command -v npx &>/dev/null; then
+  echo "❌ npx is not available. Please install Node.js 20+ from https://nodejs.org/"
+  exit 1
+fi
+
+# Check Python version
+PYTHON_VERSION=$("$PYTHON_CMD" --version 2>&1 | grep -oP '\d+\.\d+')
+if [[ "$(echo "$PYTHON_VERSION < 3.10" | bc -l)" -eq 1 ]]; then
+  echo "❌ Python version $PYTHON_VERSION is too old. Python 3.10+ is required."
+  echo "   Please upgrade Python from https://www.python.org/downloads/"
+  exit 1
+fi
+
+# Check Node.js version
+NODE_VERSION=$(node --version 2>&1 | grep -oP '\d+' | head -1)
+if [[ "$NODE_VERSION" -lt 20 ]]; then
+  echo "❌ Node.js version $(node --version) is too old. Node.js 20+ is required."
+  echo "   Please upgrade Node.js from https://nodejs.org/"
+  exit 1
+fi
+
 # Check Python virtual environment
 if [[ ! -d "python_part/.venv" ]]; then
   echo "❌ Python virtual environment not found at python_part/.venv"
-  echo "   Please run: cd python_part && python3 -m venv .venv && source .venv/bin/activate && pip install -e ."
+  echo "   Please run: cd python_part && ${PYTHON_CMD} -m venv .venv && source .venv/bin/activate && pip install -e ."
   exit 1
 fi
 
