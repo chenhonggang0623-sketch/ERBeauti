@@ -40,16 +40,17 @@ if ! command -v npx &>/dev/null; then
   exit 1
 fi
 
-# Check Python version
-PYTHON_VERSION=$("$PYTHON_CMD" --version 2>&1 | grep -oP '\d+\.\d+')
-if [[ "$(echo "$PYTHON_VERSION < 3.10" | bc -l)" -eq 1 ]]; then
-  echo "❌ Python version $PYTHON_VERSION is too old. Python 3.10+ is required."
+# Check Python version (no external deps like bc; use Python itself)
+PY_MAJOR=$("$PYTHON_CMD" -c 'import sys; print(sys.version_info[0])')
+PY_MINOR=$("$PYTHON_CMD" -c 'import sys; print(sys.version_info[1])')
+if [[ "${PY_MAJOR}" -lt 3 ]] || { [[ "${PY_MAJOR}" -eq 3 ]] && [[ "${PY_MINOR}" -lt 10 ]]; }; then
+  echo "❌ Python version ${PY_MAJOR}.${PY_MINOR} is too old. Python 3.10+ is required."
   echo "   Please upgrade Python from https://www.python.org/downloads/"
   exit 1
 fi
 
 # Check Node.js version
-NODE_VERSION=$(node --version 2>&1 | grep -oP '\d+' | head -1)
+NODE_VERSION=$(node --version 2>&1 | grep -Eo '[0-9]+' | head -1)
 if [[ "$NODE_VERSION" -lt 20 ]]; then
   echo "❌ Node.js version $(node --version) is too old. Node.js 20+ is required."
   echo "   Please upgrade Node.js from https://nodejs.org/"
