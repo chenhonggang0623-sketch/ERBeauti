@@ -87,8 +87,8 @@ set "FRONTEND_PID_FILE=%TEMP%\erbeauti_frontend.pid"
 powershell -NoProfile -Command "$p = Start-Process -NoNewWindow -PassThru -FilePath 'cmd' -ArgumentList '/c', 'cd /d \"%PROJECT_ROOT%\" && npm run dev > \"%LOG_DIR%\frontend.log\" 2>&1'; $p.Id" > "%FRONTEND_PID_FILE%"
 set /p FRONTEND_PID=<"%FRONTEND_PID_FILE%"
 
-echo BACKEND_PID=%BACKEND_PID% > "%PID_FILE%"
-echo FRONTEND_PID=%FRONTEND_PID% >> "%PID_FILE%"
+>"%PID_FILE%" echo BACKEND_PID=%BACKEND_PID%
+>>"%PID_FILE%" echo FRONTEND_PID=%FRONTEND_PID%
 
 echo ✅ ERBeauti is starting up!
 echo    Backend PID:  %BACKEND_PID%

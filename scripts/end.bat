@@ -15,7 +15,7 @@ if not exist "%PID_FILE%" (
 
 echo 🛑 Stopping ERBeauti...
 
-for /f "tokens=1,2 delims==" %%a in (%PID_FILE%) do (
+for /f "usebackq tokens=1,2 delims== " %%a in ("%PID_FILE%") do (
   if "%%a"=="BACKEND_PID" set "BACKEND_PID=%%b"
   if "%%a"=="FRONTEND_PID" set "FRONTEND_PID=%%b"
 )
