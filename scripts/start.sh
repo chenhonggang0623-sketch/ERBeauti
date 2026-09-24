@@ -40,16 +40,17 @@ if ! command -v npx &>/dev/null; then
   exit 1
 fi
 
-# Check Python version
-PYTHON_VERSION=$("$PYTHON_CMD" --version 2>&1 | grep -oP '\d+\.\d+')
-if [[ "$(echo "$PYTHON_VERSION < 3.10" | bc -l)" -eq 1 ]]; then
-  echo "❌ Python version $PYTHON_VERSION is too old. Python 3.10+ is required."
+# Check Python version (no external deps like bc; use Python itself)
+PY_MAJOR=$("$PYTHON_CMD" -c 'import sys; print(sys.version_info[0])')
+PY_MINOR=$("$PYTHON_CMD" -c 'import sys; print(sys.version_info[1])')
+if [[ "${PY_MAJOR}" -lt 3 ]] || { [[ "${PY_MAJOR}" -eq 3 ]] && [[ "${PY_MINOR}" -lt 10 ]]; }; then
+  echo "❌ Python version ${PY_MAJOR}.${PY_MINOR} is too old. Python 3.10+ is required."
   echo "   Please upgrade Python from https://www.python.org/downloads/"
   exit 1
 fi
 
 # Check Node.js version
-NODE_VERSION=$(node --version 2>&1 | grep -oP '\d+' | head -1)
+NODE_VERSION=$(node --version 2>&1 | grep -Eo '[0-9]+' | head -1)
 if [[ "$NODE_VERSION" -lt 20 ]]; then
   echo "❌ Node.js version $(node --version) is too old. Node.js 20+ is required."
   echo "   Please upgrade Node.js from https://nodejs.org/"
@@ -69,33 +70,40 @@ if [[ ! -d "node_modules" ]]; then
   exit 1
 fi
 
-# Initialize sample SQLite database
-echo "🗄️  Initializing sample SQLite database..."
-npx tsx "scripts/init-demo-db.ts"
-
-# Stop any existing instances
+# Stop any existing instances first
 if [[ -f "${PID_FILE}" ]]; then
   echo "🛑 Found existing PID file, stopping previous instances..."
   bash "${SCRIPT_DIR}/end.sh" || true
 fi
 
+# Check backend port availability (uvicorn would fail silently otherwise)
+if (exec 3<>/dev/tcp/127.0.0.1/8000) 2>/dev/null; then
+  echo "❌ Port 8000 is already in use. Another instance may be running."
+  echo "   Please run './scripts/end.sh' first, or free the port manually."
+  exit 1
+fi
+
+# Initialize sample SQLite database
+echo "🗄️  Initializing sample SQLite database..."
+npx tsx "scripts/init-demo-db.ts"
+
 # Start backend
 echo "🔧 Starting backend on http://localhost:8000 ..."
-(
-  cd "python_part"
+nohup bash -c '
+  cd "'"${PROJECT_ROOT}"'/python_part"
   # shellcheck disable=SC1091
   source .venv/bin/activate
-  export ERBEAUTI_SQLITE_DATA_DIR="${PROJECT_ROOT}/data"
+  export ERBEAUTI_SQLITE_DATA_DIR="'"${PROJECT_ROOT}"'/data"
   exec uvicorn erbeauti.api:app --host 127.0.0.1 --port 8000
-) > "${LOG_DIR}/backend.log" 2>&1 &
+' > "${LOG_DIR}/backend.log" 2>&1 &
 BACKEND_PID=$!
+disown "${BACKEND_PID}" 2>/dev/null || true
 
 # Start frontend
 echo "🎨 Starting frontend dev server..."
-(
-  exec npm run dev
-) > "${LOG_DIR}/frontend.log" 2>&1 &
+nohup npm run dev > "${LOG_DIR}/frontend.log" 2>&1 &
 FRONTEND_PID=$!
+disown "${FRONTEND_PID}" 2>/dev/null || true
 
 # Record PIDs
 cat > "${PID_FILE}" <<EOF
